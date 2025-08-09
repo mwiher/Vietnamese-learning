@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Vietnamese — Mobile Practice</title>
+<style>
+  /* Mobile-first, touch-friendly styling */
+  :root{
+    --bg:#071428; --panel:#0b2540; --muted:#9fb0c8; --accent:#ff8c42;
+    --ok:#10b981; --bad:#ef4444; --soft:#0f1724;
+  }
+  html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#e6f7ff;background:linear-gradient(180deg,var(--bg),#03202b);-webkit-font-smoothing:antialiased;}
+  .app{display:flex;flex-direction:column;gap:10px;padding:12px;max-width:900px;margin:0 auto;}
+  header{display:flex;align-items:center;gap:12px}
+  .logo{width:48px;height:48px;border-radius:10px;background:linear-gradient(180deg,var(--accent),#ffb37a);display:flex;align-items:center;justify-content:center;font-weight:700;color:#061221}
+  h1{font-size:16px;margin:0}
+  .muted{color:var(--muted);font-size:13px}
+  .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.03)}
+  .row{display:flex;gap:8px;align-items:center}
+  .big-btn{flex:1;padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);font-size:16px;border:0;color:inherit}
+  .small-btn{padding:8px;border-radius:10px;background:rgba(255,255,255,0.02);font-size:14px;border:0;color:inherit}
+  select,input{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit;font-size:15px}
+  /* Flashcard */
+  .flashcard{height:170px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;user-select:none;touch-action:manipulation}
+  .controls{display:flex;gap:8px;justify-content:center;margin-top:10px}
+  /* Quiz */
+  .options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .option-btn{padding:12px;border-radius:12px;border:0;background:rgba(255,255,255,0.02);font-size:15px;text-align:center}
+  /* Game */
+  .game-wrap{display:flex;flex-direction:column;gap:8px;align-items:center}
+  #game-canvas{background:transparent;border-radius:12px;touch-action:none}
+  .game-controls{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:6px}
+  .arrow{width:56px;height:56px;border-radius:12px;background:rgba(255,255,255,0.02);display:flex;align-items:center;justify-content:center;font-size:22px}
+  /* Deck and lists */
+  .list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .card-item{padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);display:flex;justify-content:space-between;align-items:center}
+  /* Responsive adjustments */
+  @media (min-width:700px){
+    .layout{display:grid;grid-template-columns:1fr 420px;gap:12px}
+    .flashcard{height:200px;font-size:28px}
+    #game-canvas{width:420px;height:420px}
+  }
+  @media (max-width:699px){
+    #game-canvas{width:92vw;height:92vw;max-width:420px;max-height:420px}
+  }
+  footer{font-size:13px;color:var(--muted);text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <div class="logo">VI</div>
+    <div>
+      <h1>Vietnamese — Mobile Practice</h1>
+      <div class="muted">Flashcards • Quiz • Dragon Game — touch-friendly</div>
+    </div>
+  </header>
+
+  <div class="panel">
+    <div class="row" style="gap:10px">
+      <select id="category" aria-label="Category">
+        <option value="mixed">Mixed</option>
+        <option value="travel">Travel</option>
+        <option value="food">Food</option>
+        <option value="honorifics">Honorifics</option>
+        <option value="verbs">Verbs</option>
+        <option value="adjectives">Adjectives</option>
+        <option value="grammar">Grammar</option>
+      </select>
+      <select id="practiceMode" aria-label="Mode">
+        <option value="flash">Flashcards</option>
+        <option value="quiz">Quiz</option>
+      </select>
+      <button id="goBtn" class="big-btn">Start</button>
+    </div>
+
+    <div style="margin-top:10px" class="row">
+      <div class="small-btn" id="btnStats">Stats</div>
+      <div class="small-btn" id="btnDeck">Deck</div>
+      <div class="small-btn" id="btnTable">Tones</div>
+      <div class="small-btn" id="btnGame">Game</div>
+    </div>
+  </div>
+
+  <!-- Main layout -->
+  <div class="layout" id="layout">
+
+    <!-- Left / primary column -->
+    <div>
+
+      <!-- Flashcard / Quiz panel -->
+      <div class="panel" id="practicePanel">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong id="panelTitle">Flashcards</strong><div class="muted" id="panelSub">Category: Mixed</div></div>
+          <div class="muted" id="progressSummary">Cards: 0 • Due: 0</div>
+        </div>
+
+        <!-- Flashcard -->
+        <div id="flashArea" style="margin-top:12px">
+          <div id="card" class="flashcard" role="button" aria-pressed="false">Tap Start</div>
+          <div class="controls">
+            <button id="playBtn" class="small-btn">🔊 Play</button>
+            <button id="correctBtn" class="small-btn" style="background:rgba(16,185,129,0.06)">Correct ✓</button>
+            <button id="wrongBtn" class="small-btn" style="background:rgba(239,68,68,0.06)">Wrong ✕</button>
+            <button id="nextBtn" class="small-btn">Next</button>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap">
+            <div class="muted">Box: <span id="cardBox">-</span></div>
+            <div class="muted">Last: <span id="cardLast">-</span></div>
+            <div class="muted">Correct: <span id="cardCorrect">0</span></div>
+            <div class="muted">Wrong: <span id="cardWrong">0</span></div>
+          </div>
+        </div>
+
+        <!-- Quiz -->
+        <div id="quizArea" style="display:none;margin-top:12px">
+          <div style="font-size:18px">Translate: <strong id="quizPrompt"></strong></div>
+          <div class="options" id="quizOptions"></div>
+          <div style="margin-top:8px" class="muted">Question <span id="qIndex">1</span> / <span id="qTotal">10</span></div>
+        </div>
+      </div>
+
+      <!-- Tones & Vowels -->
+      <div class="panel" id="tonesPanel" style="display:none;margin-top:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Tones & Vowels</strong><div class="muted">Tap play to hear (TTS vi-VN if available)</div></div>
+          <div></div>
+        </div>
+        <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <div class="muted" style="margin-bottom:6px">Tones</div>
+            <div id="tonesList" style="display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+          <div>
+            <div class="muted" style="margin-bottom:6px">Vowels</div>
+            <div id="vowelList" style="display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="panel" id="statsPanel" style="display:none;margin-top:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Progress</strong><div class="muted">Saved locally on this device</div></div>
+          <div></div>
+        </div>
+        <div style="margin-top:8px">
+          <div class="muted">Total cards: <strong id="totalCards">0</strong></div>
+          <div class="muted">Correct: <strong id="totalCorrect">0</strong> • Wrong: <strong id="totalWrong">0</strong></div>
+          <div class="muted">Game high: <strong id="totalHigh">0</strong></div>
+        </div>
+
+        <div style="margin-top:8px">
+          <div class="muted">Recent quizzes</div>
+          <div id="recentQuizzes" style="margin-top:6px;display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right column (game + deck) -->
+    <aside>
+      <div class="panel" id="gamePanel">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Dragon Game</strong><div class="muted">Swipe or tap arrows to steer</div></div>
+          <div><button id="startGameBtn" class="small-btn">Play</button></div>
+        </div>
+        <div style="margin-top:10px" class="game-wrap">
+          <canvas id="game-canvas"></canvas>
+          <div class="game-controls" style="margin-top:6px">
+            <div class="arrow" id="leftBtn">◀</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div class="arrow" id="upBtn">▲</div>
+              <div class="arrow" id="downBtn">▼</div>
+            </div>
+            <div class="arrow" id="rightBtn">▶</div>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center;justify-content:center">
+            <div class="muted">Score: <strong id="scoreDisplay">0</strong></div>
+            <div class="muted">High: <strong id="highDisplay">0</strong></div>
+          </div>
+          <div style="margin-top:8px;background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;width:100%;text-align:center">
+            <div class="muted">Bonus word (when you eat)</div>
+            <div id="bonusVN" style="margin-top:6px;font-size:18px">—</div>
+            <div id="bonusEN" class="muted" style="margin-top:6px">—</div>
+            <div style="margin-top:6px;display:flex;gap:8px;justify-content:center">
+              <button id="bonusCorrect" class="small-btn">Correct ✓</button>
+              <button id="bonusWrong" class="small-btn">Wrong ✕</button>
+              <button id="bonusPlay" class="small-btn">🔊</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="deckPanel" style="margin-top:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Deck</strong><div class="muted">Add or export</div></div>
+          <div><button id="exportBtn" class="small-btn">Export</button></div>
+        </div>
+
+        <div style="margin-top:8px">
+          <input id="newVN" placeholder="Vietnamese (e.g., ăn)" style="width:100%;margin-bottom:8px" />
+          <input id="newEN" placeholder="English (e.g., eat)" style="width:100%;margin-bottom:8px" />
+          <select id="newCat" style="width:100%;margin-bottom:8px">
+            <option value="travel">Travel</option><option value="food">Food</option><option value="honorifics">Honorifics</option><option value="verbs">Verbs</option><option value="adjectives">Adjectives</option><option value="grammar">Grammar</option>
+          </select>
+          <div style="display:flex;gap:8px">
+            <button id="addBtn" class="big-btn">Add</button>
+            <button id="importBtn" class="small-btn">Import</button>
+          </div>
+        </div>
+
+        <div class="list" id="deckList" style="margin-top:8px;max-height:260px;overflow:auto"></div>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <footer>All data stays in your browser. For better Vietnamese pronunciation install a vi-VN voice on your device.</footer>
+</div>
+
+<script>
+/* ============================
+   Mobile-optimized Vietnamese app
+   - Touch-friendly
+   - LocalStorage persistence
+   - TTS (speechSynthesis)
+   ============================ */
+
+const STORAGE = 'vi_mobile_app_v1';
+const defaults = {
+  travel: [ "sân bay|airport", "khách sạn|hotel","vé|ticket","hộ chiếu|passport","tàu hỏa|train","xe buýt|bus","ga tàu|train station","vali|suitcase","trạm xe|bus stop","bản đồ|map","hướng dẫn viên|tour guide","thị thực|visa","chỗ ngồi|seat","cửa khẩu|border gate","nhà ga|station" ],
+  food: [ "bánh mì|bread / sandwich","phở|noodle soup","cà phê sữa đá|iced milk coffee","gỏi cuốn|spring rolls","nước mắm|fish sauce","cơm tấm|broken rice","bún chả|grilled pork with noodles","chè|sweet dessert soup","bánh xèo|savory pancake","hủ tiếu|noodle soup (south)","bún bò Huế|spicy beef noodle soup","sữa chua|yogurt","bia|beer","trái cây|fruit","cá kho|braised fish" ],
+  honorifics: [ "anh|older brother / Mr.","chị|older sister / Ms.","em|younger person","cô|aunt / Miss","chú|uncle / Mr.","bác|older uncle/aunt","ông|grandfather / Mr.","bà|grandmother / Mrs.","con|child","cháu|grandchild / niece/nephew","thầy|teacher (male)","cô giáo|teacher (female)","sếp|boss","bạn|friend","quý khách|valued customer" ],
+  verbs: [ "ăn|eat","uống|drink","đi|go","đến|come / arrive","xem|watch / see","nói|speak","nghe|listen","đọc|read","viết|write","học|study / learn","làm|do / make","chơi|play","mua|buy","bán|sell","yêu|love","thích|like" ],
+  adjectives: [ "đẹp|beautiful / nice","xấu|ugly / bad","to|big","nhỏ|small","nhanh|fast","chậm|slow","mới|new","cũ|old (object)","nóng|hot","lạnh|cold","vui|happy","buồn|sad","đắt|expensive","rẻ|cheap","ngon|delicious" ],
+  grammar: [ "tôi|I (neutral/formal) — pronoun","bạn|you (neutral) — pronoun","không|negation (before verb)","đã|past marker","sẽ|future marker","đang|progressive","của|possession","các / những|plural markers","cái / con / chiếc|classifiers","không?|question particle","ạ|politeness particle","rất / hơi / quá|very / a bit / too","hơn|comparative","nhất|superlative" ]
+};
+
+/* State */
+let state = {
+  deck: {}, // cat -> [card]
+  stats: { totalCorrect:0, totalWrong:0, perCategory:{} },
+  quizzes: [],
+  game: { high:0 }
+};
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+/* Load / init */
+function load(){
+  const raw = localStorage.getItem(STORAGE);
+  if(raw){
+    try{ state = JSON.parse(raw); ensureStructure(); updateUI(); return; } catch(e){ console.warn('corrupt'); }
+  }
+  // initialize
+  for(const cat in defaults){
+    state.deck[cat] = defaults[cat].map(s => {
+      const [vn,en] = s.split('|');
+      return { id: uid(), vn: vn.trim(), en: en.trim(), box:1, last:0, correct:0, wrong:0 };
+    });
+    state.stats.perCategory[cat] = { correct:0, wrong:0 };
+  }
+  state.quizzes = []; state.game = { high:0 }; save();
+}
+function ensureStructure(){
+  if(!state.deck) state.deck = {};
+  if(!state.stats) state.stats = { totalCorrect:0, totalWrong:0, perCategory:{} };
+  for(const cat in defaults) if(!state.deck[cat]) state.deck[cat] = [];
+  for(const cat in state.deck) if(!state.stats.perCategory[cat]) state.stats.perCategory[cat] = { correct:0, wrong:0 };
+}
+function save(){ localStorage.setItem(STORAGE, JSON.stringify(state)); updateUI(); }
+
+/* TTS */
+function speak(text){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'vi-VN';
+    const voices = speechSynthesis.getVoices();
+    const v = voices.find(x=>x.lang && x.lang.toLowerCase().startsWith('vi'));
+    if(v) u.voice = v;
+    u.rate = 0.95;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  }catch(e){ console.warn('tts',e); }
+}
+
+/* Flashcard & quiz view */
+let view = []; // current working set
+let curIndex = 0;
+let flipped = false;
+const intervals = [0, 60*1000, 10*60*1000, 24*60*60*1000, 3*24*60*60*1000, 7*24*60*60*1000];
+
+function buildView(cat){
+  view = [];
+  if(cat === 'mixed'){
+    for(const c in state.deck) view = view.concat(state.deck[c]);
+  } else view = [...state.deck[cat]];
+  // sort by due (smallest next time first)
+  const now = Date.now();
+  view.sort((a,b)=>{
+    const na = (a.last || 0) + intervals[a.box||1];
+    const nb = (b.last || 0) + intervals[b.box||1];
+    return na - nb;
+  });
+  curIndex = 0; flipped = false;
+  showCard();
+}
+
+function showCard(){
+  const cardEl = document.getElementById('card');
+  if(!view.length){ cardEl.textContent = 'No cards — add some in Deck'; return; }
+  const c = view[curIndex];
+  cardEl.textContent = flipped ? c.en : c.vn;
+  document.getElementById('cardBox').textContent = c.box || 1;
+  document.getElementById('cardLast').textContent = c.last ? new Date(c.last).toLocaleString() : '-';
+  document.getElementById('cardCorrect').textContent = c.correct || 0;
+  document.getElementById('cardWrong').textContent = c.wrong || 0;
+  document.getElementById('panelTitle').textContent = (document.getElementById('practiceMode').value === 'quiz') ? 'Quiz' : 'Flashcards';
+  document.getElementById('panelSub').textContent = 'Category: ' + (document.getElementById('category').value || 'mixed');
+  const due = view.filter(c => (c.last || 0) + intervals[c.box||1] <= Date.now()).length;
+  document.getElementById('progressSummary').textContent = `Cards: ${view.length} • Due: ${due}`;
+}
+
+function flipCard(){ if(!view.length) return; flipped = !flipped; showCard(); if(flipped) speak(view[curIndex].vn); }
+
+function markCard(correct){
+  if(!view.length) return;
+  const c = view[curIndex];
+  c.last = Date.now();
+  if(correct){ c.correct = (c.correct||0) + 1; c.box = Math.min(5, (c.box||1)+1); state.stats.totalCorrect++; state.stats.perCategory[ findCategory(c.id) ].correct++; }
+  else { c.wrong = (c.wrong||0) + 1; c.box = Math.max(1, (c.box||1)-1); state.stats.totalWrong++; state.stats.perCategory[ findCategory(c.id) ].wrong++; }
+  save();
+  curIndex = (curIndex + 1) % view.length; flipped = false; showCard();
+}
+
+/* Quick next */
+function nextCard(){ if(!view.length) return; curIndex = (curIndex + 1) % view.length; flipped = false; showCard(); }
+
+/* find category for card id */
+function findCategory(id){
+  for(const cat in state.deck) if(state.deck[cat].some(x => x.id === id)) return cat;
+  return null;
+}
+
+/* Quiz functions */
+let quiz = null;
+function startQuiz(cat, qty){
+  let pool = [];
+  if(cat === 'mixed'){ for(const k in state.deck) pool = pool.concat(state.deck[k]); } else pool = [...state.deck[cat]];
+  if(pool.length < 2) { alert('Add more cards to quiz.'); return; }
+  pool.sort(()=>Math.random()-0.5);
+  const questions = pool.slice(0, Math.min(qty, pool.length));
+  quiz = { cat, questions, idx:0, score:0, total:questions.length };
+  document.getElementById('quizArea').style.display = ''; document.getElementById('flashArea').style.display = 'none';
+  showQuizQuestion();
+}
+function showQuizQuestion(){
+  if(!quiz) return;
+  const q = quiz.questions[quiz.idx];
+  document.getElementById('quizPrompt').textContent = q.vn;
+  const pool = (quiz.cat === 'mixed') ? Object.values(state.deck).flat() : state.deck[quiz.cat];
+  let others = [];
+  while(others.length < 3){
+    const pick = pool[Math.floor(Math.random()*pool.length)];
+    if(pick.id !== q.id && !others.includes(pick)) others.push(pick);
+  }
+  const opts = [q,...others].sort(()=>Math.random()-0.5);
+  const cont = document.getElementById('quizOptions'); cont.innerHTML = '';
+  opts.forEach(opt=>{
+    const b = document.createElement('button'); b.className = 'option-btn'; b.textContent = opt.en;
+    b.onclick = ()=>{
+      if(opt.id === q.id){
+        b.style.background = 'rgba(16,185,129,0.08)'; quiz.score++; q.correct = (q.correct||0) + 1; q.box = Math.min(5,(q.box||1)+1);
+        state.stats.totalCorrect++; state.stats.perCategory[ findCategory(q.id) ].correct++;
+      } else {
+        b.style.background = 'rgba(239,68,68,0.06)'; q.wrong = (q.wrong||0) + 1; q.box = Math.max(1,(q.box||1)-1);
+        state.stats.totalWrong++; state.stats.perCategory[ findCategory(q.id) ].wrong++;
+      }
+      q.last = Date.now(); save();
+      setTimeout(()=>{ quiz.idx++; if(quiz.idx >= quiz.total){ finishQuiz(); } else showQuizQuestion(); }, 600);
+    };
+    cont.appendChild(b);
+  });
+  document.getElementById('qIndex').textContent = quiz.idx + 1;
+  document.getElementById('qTotal').textContent = quiz.total;
+}
+function finishQuiz(){
+  document.getElementById('quizArea').style.display = 'none'; document.getElementById('flashArea').style.display = '';
+  state.quizzes.unshift({ time: Date.now(), category: quiz.cat, score: quiz.score, total: quiz.total });
+  if(state.quizzes.length > 200) state.quizzes.pop();
+  save();
+  alert('Quiz finished: ' + quiz.score + ' / ' + quiz.total);
+  quiz = null;
+}
+
+/* Game (touch + arrows + responsive canvas) */
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+let grid = 20; // square grid
+let cell; // computed from canvas size
+let snake = [], dir = {x:1,y:0}, food = null, gScore = 0, loop = null, playing = false, bonus = null;
+
+function resizeCanvas(){
+  const rectW = Math.min(window.innerWidth * 0.92, 420);
+  canvas.width = rectW;
+  canvas.height = rectW;
+  cell = canvas.width / grid;
+  drawGame();
+}
+window.addEventListener('resize', resizeCanvas);
+
+function resetGame(){
+  snake = [{x:Math.floor(grid/2), y:Math.floor(grid/2)}];
+  dir = {x:1,y:0}; placeFood(); gScore = 0; bonus = null; playing = false; updateGameUI(); drawGame();
+}
+function placeFood(){
+  while(true){
+    const x = Math.floor(Math.random()*grid), y = Math.floor(Math.random()*grid);
+    if(!snake.some(p=>p.x===x && p.y===y)){ food = {x,y}; break; }
+  }
+}
+function drawGame(){
+  ctx.fillStyle = '#07172b'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  // draw food (emoji)
+  ctx.font = Math.floor(cell-4) + 'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('🥖', (food.x+0.5)*cell, (food.y+0.5)*cell);
+  // snake
+  snake.forEach((s,i)=>{
+    if(i===0){ ctx.font = Math.floor(cell) + 'px serif'; ctx.fillText('🐉', (s.x+0.5)*cell, (s.y+0.5)*cell); }
+    else { ctx.fillStyle = '#14532d'; ctx.fillRect(s.x*cell+2, s.y*cell+2, cell-4, cell-4); }
+  });
+}
+function step(){
+  const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+  // wall or self collision
+  if(head.x<0 || head.y<0 || head.x>=grid || head.y>=grid || snake.some(p=>p.x===head.x && p.y===head.y)){ endGame(); return; }
+  snake.unshift(head);
+  if(head.x === food.x && head.y === food.y){
+    gScore++; spawnBonusWord(); placeFood();
+    // speed up every 3 points
+    if(gScore % 3 === 0){ clearInterval(loop); loop = setInterval(step, Math.max(70, 140 - gScore*4)); }
+  } else snake.pop();
+  drawGame(); updateGameUI();
+}
+function startGame(){
+  if(playing) return;
+  playing = true;
+  loop = setInterval(step, 140);
+}
+function endGame(){
+  playing = false;
+  clearInterval(loop);
+  if(gScore > (state.game.high || 0)){ state.game.high = gScore; save(); alert('New high: '+gScore); }
+  else alert('Game over — score: '+gScore);
+  resetGame();
+}
+function updateGameUI(){ document.getElementById('scoreDisplay').textContent = gScore; document.getElementById('highDisplay').textContent = state.game.high || 0; }
+
+/* Touch / swipe controls for mobile */
+let touchStart = null;
+canvas.addEventListener('touchstart', (e)=>{ touchStart = e.touches[0]; }, {passive:true});
+canvas.addEventListener('touchend', (e)=>{
+  if(!touchStart) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStart.clientX;
+  const dy = t.clientY - touchStart.clientY;
+  if(Math.abs(dx) > Math.abs(dy)){
+    if(dx > 20) setDir(1,0);
+    else if(dx < -20) setDir(-1,0);
+  } else {
+    if(dy > 20) setDir(0,1);
+    else if(dy < -20) setDir(0,-1);
+  }
+  touchStart = null;
+}, {passive:true});
+
+/* On-screen arrows */
+document.getElementById('leftBtn').addEventListener('click', ()=> setDir(-1,0));
+document.getElementById('rightBtn').addEventListener('click', ()=> setDir(1,0));
+document.getElementById('upBtn').addEventListener('click', ()=> setDir(0,-1));
+document.getElementById('downBtn').addEventListener('click', ()=> setDir(0,1));
+function setDir(x,y){
+  if(snake.length>1 && x === -dir.x && y === -dir.y) return;
+  dir = {x,y};
+}
+
+/* spawn bonus word from selected category */
+function spawnBonusWord(){
+  const cat = document.getElementById('category').value;
+  let pool = [];
+  if(cat === 'mixed'){ for(const k in state.deck) pool = pool.concat(state.deck[k]); } else pool = [...state.deck[cat]];
+  if(pool.length === 0){ bonus = null; document.getElementById('bonusVN').textContent = '—'; document.getElementById('bonusEN').textContent = '—'; return; }
+  bonus = pool[Math.floor(Math.random()*pool.length)];
+  document.getElementById('bonusVN').textContent = bonus.vn;
+  document.getElementById('bonusEN').textContent = bonus.en;
+  speak(bonus.vn);
+}
+
+/* bonus mark */
+document.getElementById('bonusCorrect').addEventListener('click', ()=>{
+  if(!bonus) return; bonus.last = Date.now(); bonus.correct = (bonus.correct||0) + 1; bonus.box = Math.min(5,(bonus.box||1)+1);
+  const cat = findCategory(bonus.id); state.stats.totalCorrect++; state.stats.perCategory[cat].correct++; save();
+  bonus = null; document.getElementById('bonusVN').textContent='—'; document.getElementById('bonusEN').textContent='—';
+});
+document.getElementById('bonusWrong').addEventListener('click', ()=>{
+  if(!bonus) return; bonus.last = Date.now(); bonus.wrong = (bonus.wrong||0) + 1; bonus.box = Math.max(1,(bonus.box||1)-1);
+  const cat = findCategory(bonus.id); state.stats.totalWrong++; state.stats.perCategory[cat].wrong++; save();
+  bonus = null; document.getElementById('bonusVN').textContent='—'; document.getElementById('bonusEN').textContent='—';
+});
+document.getElementById('bonusPlay').addEventListener('click', ()=> { if(bonus) speak(bonus.vn); });
+
+/* Add / Export deck */
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  const vn = document.getElementById('newVN').value.trim(), en = document.getElementById('newEN').value.trim(), cat = document.getElementById('newCat').value;
+  if(!vn || !en){ alert('Enter both VN and EN'); return; }
+  if(!state.deck[cat]) state.deck[cat] = [];
+  state.deck[cat].push({ id: uid(), vn, en, box:1, last:0, correct:0, wrong:0 });
+  document.getElementById('newVN').value=''; document.getElementById('newEN').value=''; save();
+});
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'vi_mobile_export.json'; a.click(); URL.revokeObjectURL(url);
+});
+
+/* import (file picker) */
+document.getElementById('importBtn').addEventListener('click', ()=>{
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
+  inp.onchange = e => {
+    const f = e.target.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      try{
+        const parsed = JSON.parse(ev.target.result);
+        if(parsed && parsed.deck){ if(confirm('Replace current data with imported data?')){ state = parsed; ensureStructure(); save(); } }
+        else alert('Invalid file (missing deck)');
+      }catch(err){ alert('Import failed: ' + err.message); }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+});
+
+/* Tones & vowels list fill */
+const tones = [
+  {name:'ngang',mark:'(flat)',ex:'ma'}, {name:'sắc',mark:'´',ex:'má'}, {name:'huyền',mark:'`',ex:'mà'},
+  {name:'hỏi',mark:'̉',ex:'mả'},{name:'ngã',mark:'̃',ex:'mã'},{name:'nặng',mark:'̣',ex:'mạ'}
+];
+const vowels = [
+  {v:'a',ex:'ba',ipa:'[a]'}, {v:'ă',ex:'bă',ipa:'short a'}, {v:'â',ex:'bâ',ipa:'central'},
+  {v:'e',ex:'mẹ',ipa:'[e]'}, {v:'ê',ex:'mê',ipa:'[e:]'}, {v:'i',ex:'đi',ipa:'[i]'},
+  {v:'o',ex:'cô',ipa:'[o]'}, {v:'ô',ex:'gỗ',ipa:'[o:]'}, {v:'ơ',ex:'cơ',ipa:'[ɤ]'},
+  {v:'u',ex:'bu',ipa:'[u]'}, {v:'ư',ex:'tư',ipa:'[ɨ]'}, {v:'y',ex:'ý',ipa:'[i]'}
+];
+function fillToneVowel(){
+  const tEl = document.getElementById('tonesList'); tEl.innerHTML=''; tones.forEach(t=>{
+    const div = document.createElement('div'); div.className='card-item';
+    div.innerHTML = `<div><strong style="text-transform:capitalize">${t.name}</strong> ${t.mark} — <span class="muted">${t.ex}</span></div><div><button class="small-btn">🔊</button></div>`;
+    div.querySelector('button').addEventListener('click', ()=> speak(t.ex));
+    tEl.appendChild(div);
+  });
+  const vEl = document.getElementById('vowelList'); vEl.innerHTML='';
+  vowels.forEach(v=>{
+    const div = document.createElement('div'); div.className='card-item';
+    div.innerHTML = `<div><strong>${v.v}</strong> — ${v.ex} <div class="muted">${v.ipa}</div></div><div><button class="small-btn">🔊</button></div>`;
+    div.querySelector('button').addEventListener('click', ()=> speak(v.ex));
+    vEl.appendChild(div);
+  });
+}
+
+/* UI wiring */
+document.getElementById('goBtn').addEventListener('click', ()=>{
+  const cat = document.getElementById('category').value; const mode = document.getElementById('practiceMode').value;
+  if(mode === 'flash'){ document.getElementById('flashArea').style.display=''; document.getElementById('quizArea').style.display='none'; buildView(cat); }
+  else { startQuiz(cat, parseInt(document.getElementById('quiz-qty') ? document.getElementById('quiz-qty').value : 10 || 10)); }
+});
+document.getElementById('card').addEventListener('click', flipCard);
+document.getElementById('playBtn').addEventListener('click', ()=> { if(view.length) speak(view[curIndex].vn); });
+document.getElementById('correctBtn').addEventListener('click', ()=> markCard(true));
+document.getElementById('wrongBtn').addEventListener('click', ()=> markCard(false));
+document.getElementById('nextBtn').addEventListener('click', nextCard);
+
+document.getElementById('btnTable').addEventListener('click', ()=> { document.getElementById('tonesPanel').style.display=''; document.getElementById('practicePanel').style.display='none'; fillToneVowel(); });
+document.getElementById('btnStats').addEventListener('click', ()=> { document.getElementById('tonesPanel').style.display='none'; document.getElementById('practicePanel').style.display='none'; document.getElementById('statsPanel').style.display=''; renderStats(); });
+document.getElementById('btnDeck').addEventListener('click', ()=> { document.getElementById('tonesPanel').style.display='none'; document.getElementById('practicePanel').style.display='none'; document.getElementById('statsPanel').style.display='none'; document.getElementById('deckPanel').style.display=''; renderDeck(); });
+document.getElementById('btnGame').addEventListener('click', ()=> { document.getElementById('practicePanel').style.display='none'; document.getElementById('tonesPanel').style.display='none'; document.getElementById('statsPanel').style.display='none'; document.getElementById('deckPanel').style.display='none'; document.getElementById('gamePanel').style.display=''; });
+
+document.getElementById('startGameBtn').addEventListener('click', ()=> { resetGame(); startGame(); });
+document.getElementById('leftBtn').addEventListener('touchstart',(e)=>{ e.preventDefault(); setDir(-1,0); }, {passive:false});
+document.getElementById('rightBtn').addEventListener('touchstart',(e)=>{ e.preventDefault(); setDir(1,0); }, {passive:false});
+document.getElementById('upBtn').addEventListener('touchstart',(e)=>{ e.preventDefault(); setDir(0,-1); }, {passive:false});
+document.getElementById('downBtn').addEventListener('touchstart',(e)=>{ e.preventDefault(); setDir(0,1); }, {passive:false});
+
+function setDir(x,y){ if(snake.length>1 && x === -dir.x && y === -dir.y) return; dir = {x,y}; }
+
+/* deck rendering & stats */
+function renderDeck(){
+  const el = document.getElementById('deckList'); el.innerHTML = '';
+  for(const cat in state.deck){
+    const head = document.createElement('div'); head.className='card-item';
+    head.innerHTML = `<div><strong style="text-transform:capitalize">${cat}</strong><div class="muted">${state.deck[cat].length} items</div></div><div></div>`;
+    el.appendChild(head);
+    state.deck[cat].forEach(c=>{
+      const row = document.createElement('div'); row.className='card-item';
+      row.innerHTML = `<div><strong>${c.vn}</strong><div class="muted">${c.en}</div></div><div style="display:flex;gap:6px"><button class="small-btn">🔊</button><button class="small-btn">Edit</button><button class="small-btn">Del</button></div>`;
+      row.querySelector('button').addEventListener('click', (ev)=>{ const btn = ev.target; if(btn.textContent==='🔊') speak(c.vn); else if(btn.textContent==='Edit'){ const nv = prompt('Edit VN', c.vn); const ne = prompt('Edit EN', c.en); if(nv!==null && ne!==null){ c.vn = nv; c.en = ne; save(); renderDeck(); } } else { if(confirm('Delete?')){ state.deck[cat] = state.deck[cat].filter(x=>x.id!==c.id); save(); renderDeck(); } } });
+      el.appendChild(row);
+    });
+  }
+}
+
+document.getElementById('addBtn').addEventListener('click', ()=> {
+  document.getElementById('btnDeck').click(); // switch view
+  const vn = document.getElementById('newVN').value.trim(), en = document.getElementById('newEN').value.trim(), cat = document.getElementById('newCat').value;
+  if(!vn || !en) { alert('enter both'); return; }
+  if(!state.deck[cat]) state.deck[cat] = [];
+  state.deck[cat].push({ id: uid(), vn, en, box:1, last:0, correct:0, wrong:0 });
+  document.getElementById('newVN').value=''; document.getElementById('newEN').value=''; save(); renderDeck();
+});
+
+/* Stats rendering */
+function renderStats(){
+  document.getElementById('totalCards').textContent = Object.values(state.deck).flat().length;
+  document.getElementById('totalCorrect').textContent = state.stats.totalCorrect || 0;
+  document.getElementById('totalWrong').textContent = state.stats.totalWrong || 0;
+  document.getElementById('totalHigh').textContent = state.game.high || 0;
+  const rq = document.getElementById('recentQuizzes'); rq.innerHTML = '';
+  state.quizzes.slice(0,8).forEach(q => {
+    const d = document.createElement('div'); d.className='card-item'; d.innerHTML = `<div class="muted">${new Date(q.time).toLocaleString()}</div><div>${q.category} • ${q.score}/${q.total}</div>`; rq.appendChild(d);
+  });
+}
+
+/* update UI summary */
+function updateUI(){
+  // summary line top-right in practice
+  const totalCards = Object.values(state.deck).flat().length;
+  const due = Object.values(state.deck).flat().filter(c => (c.last || 0) + intervals[(c.box||1)] <= Date.now()).length;
+  document.getElementById('progressSummary').textContent = `Cards: ${totalCards} • Due: ${due}`;
+  document.getElementById('totalCards').textContent = totalCards;
+  document.getElementById('totalCorrect').textContent = state.stats.totalCorrect || 0;
+  document.getElementById('totalWrong').textContent = state.stats.totalWrong || 0;
+  document.getElementById('totalHigh').textContent = state.game.high || 0;
+  document.getElementById('highDisplay').textContent = state.game.high || 0;
+  // deck list live if currently visible
+  if(document.getElementById('deckPanel').style.display !== 'none') renderDeck();
+}
+
+/* keyboard arrow support for desktop */
+document.addEventListener('keydown', (e)=>{
+  if(e.key.startsWith('Arrow')) {
+    if(e.key === 'ArrowLeft') setDir(-1,0);
+    if(e.key === 'ArrowRight') setDir(1,0);
+    if(e.key === 'ArrowUp') setDir(0,-1);
+    if(e.key === 'ArrowDown') setDir(0,1);
+  }
+});
+
+/* init */
+load();
+resizeCanvas();
+resetGame();
+fillToneVowel();
+updateUI();
+
+/* Expose some helper in case user opens dev console */
+window._state = state;
+</script>
+</body>
+</html>
